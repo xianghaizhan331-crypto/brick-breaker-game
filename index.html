@@ -1,707 +1,683 @@
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.6">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON BREAKER · 벽돌깨기</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --neon-pink:#f472b6; --neon-cyan:#22d3ee; --neon-violet:#a78bfa; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
+    background: #070714;
+    color: #e5e7eb;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .orbitron { font-family: 'Orbitron', 'Noto Sans KR', sans-serif; }
+  /* 배경 */
+  .bg-scene {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(167,139,250,.25), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, rgba(34,211,238,.18), transparent 60%),
+      radial-gradient(700px 400px at 50% 50%, rgba(244,114,182,.10), transparent 60%),
+      #070714;
+  }
+  .bg-grid {
+    position: fixed; inset: 0; z-index: -1; opacity: .35;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+  .glass {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .neon-text {
+    background: linear-gradient(90deg, #f472b6, #a78bfa, #22d3ee);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(167,139,250,.45));
+  }
+  .btn-neon {
+    position: relative;
+    background: linear-gradient(135deg, #f472b6, #a78bfa 55%, #22d3ee);
+    color: #0b0b1a; font-weight: 800; letter-spacing: .02em;
+    box-shadow: 0 0 24px rgba(167,139,250,.45), 0 8px 24px rgba(0,0,0,.35);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .btn-neon:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(167,139,250,.65), 0 12px 30px rgba(0,0,0,.4); filter: brightness(1.05); }
+  .btn-neon:active { transform: translateY(0); }
+  .btn-ghost {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: #e5e7eb;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); }
+  canvas#game {
+    width: 100%; height: auto; display: block;
+    border-radius: 18px;
+    background: radial-gradient(ellipse at 50% 0%, #1b1b3a 0%, #0b0b1f 60%, #06060f 100%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 0 60px rgba(167,139,250,.15), inset 0 0 80px rgba(0,0,0,.5);
+  }
+  .overlay {
+    position: absolute; inset: 0; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    background: rgba(5,5,16,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transition: opacity .25s ease;
+  }
+  .overlay.hidden-ov { opacity: 0; pointer-events: none; }
+  .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 30px; padding: 0 8px;
+    border-radius: 8px; font-size: 12px; font-weight: 700;
+    background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 3px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
+    color: #fff;
+  }
+  .rank-item { transition: transform .2s ease, background .2s ease; }
+  .rank-item:hover { transform: translateX(3px); background: rgba(255,255,255,.06); }
+  .rank-me { background: linear-gradient(90deg, rgba(34,211,238,.18), rgba(167,139,250,.12)); border-color: rgba(34,211,238,.4) !important; }
+  .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.4; transform:scale(.75)} }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .float { animation: float 4s ease-in-out infinite; }
+  @keyframes popIn { from{opacity:0; transform:scale(.92) translateY(10px)} to{opacity:1; transform:scale(1) translateY(0)} }
+  .pop-in { animation: popIn .35s cubic-bezier(.2,.9,.3,1.2) both; }
+  .fade-enter { animation: popIn .4s ease both; }
+  input.neon-input {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); color: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input.neon-input:focus { outline: none; border-color: var(--neon-violet); box-shadow: 0 0 0 4px rgba(167,139,250,.2); }
+  .hud-val { text-shadow: 0 0 14px rgba(255,255,255,.35); }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 6px; }
+</style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="ko"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1">&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1">&lt;title&gt;NEON BREAKER · 벽돌깨기&lt;/title&gt;</p>
-<p class="p1">&lt;script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"&gt;&lt;/script&gt;</p>
-<p class="p1">&lt;link rel="preconnect" href="https://fonts.googleapis.com"&gt;</p>
-<p class="p1">&lt;link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&amp;family=Orbitron:wght@500;700;900&amp;display=swap" rel="stylesheet"&gt;</p>
-<p class="p1">&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>:root { --neon-pink:#f472b6; --neon-cyan:#22d3ee; --neon-violet:#a78bfa; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>* { box-sizing: border-box; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>body {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>font-family: 'Noto Sans KR', system-ui, sans-serif;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: #070714;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: #e5e7eb;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>min-height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>overflow-x: hidden;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.orbitron { font-family: 'Orbitron', 'Noto Sans KR', sans-serif; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* 배경 */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.bg-scene {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: fixed; inset: 0; z-index: -2;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background:</p>
-<p class="p1"><span class="Apple-converted-space">      </span>radial-gradient(1200px 600px at 10% -10%, rgba(167,139,250,.25), transparent 60%),</p>
-<p class="p1"><span class="Apple-converted-space">      </span>radial-gradient(900px 500px at 100% 110%, rgba(34,211,238,.18), transparent 60%),</p>
-<p class="p1"><span class="Apple-converted-space">      </span>radial-gradient(700px 400px at 50% 50%, rgba(244,114,182,.10), transparent 60%),</p>
-<p class="p1"><span class="Apple-converted-space">      </span>#070714;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.bg-grid {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: fixed; inset: 0; z-index: -1; opacity: .35;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background-image:</p>
-<p class="p1"><span class="Apple-converted-space">      </span>linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),</p>
-<p class="p1"><span class="Apple-converted-space">      </span>linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background-size: 40px 40px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.glass {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(255,255,255,.04);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid rgba(255,255,255,.08);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>backdrop-filter: blur(14px);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>-webkit-backdrop-filter: blur(14px);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.neon-text {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: linear-gradient(90deg, #f472b6, #a78bfa, #22d3ee);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>-webkit-background-clip: text; background-clip: text; color: transparent;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>filter: drop-shadow(0 0 18px rgba(167,139,250,.45));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-neon {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: relative;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: linear-gradient(135deg, #f472b6, #a78bfa 55%, #22d3ee);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: #0b0b1a; font-weight: 800; letter-spacing: .02em;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 0 24px rgba(167,139,250,.45), 0 8px 24px rgba(0,0,0,.35);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-neon:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(167,139,250,.65), 0 12px 30px rgba(0,0,0,.4); filter: brightness(1.05); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-neon:active { transform: translateY(0); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-ghost {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: #e5e7eb;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: background .15s ease, border-color .15s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-ghost:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>canvas#game {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 100%; height: auto; display: block;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 18px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: radial-gradient(ellipse at 50% 0%, #1b1b3a 0%, #0b0b1f 60%, #06060f 100%);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 0 60px rgba(167,139,250,.15), inset 0 0 80px rgba(0,0,0,.5);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.overlay {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: absolute; inset: 0; border-radius: 18px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; justify-content: center; text-align: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(5,5,16,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: opacity .25s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.overlay.hidden-ov { opacity: 0; pointer-events: none; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.key {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: inline-flex; align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>min-width: 30px; height: 30px; padding: 0 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 8px; font-size: 12px; font-weight: 700;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid rgba(255,255,255,.18);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 3px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: #fff;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.rank-item { transition: transform .2s ease, background .2s ease; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.rank-item:hover { transform: translateX(3px); background: rgba(255,255,255,.06); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.rank-me { background: linear-gradient(90deg, rgba(34,211,238,.18), rgba(167,139,250,.12)); border-color: rgba(34,211,238,.4) !important; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.pulse-dot { animation: pulse 1.6s ease-in-out infinite; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>@keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.4; transform:scale(.75)} }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.float { animation: float 4s ease-in-out infinite; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>@keyframes popIn { from{opacity:0; transform:scale(.92) translateY(10px)} to{opacity:1; transform:scale(1) translateY(0)} }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.pop-in { animation: popIn .35s cubic-bezier(.2,.9,.3,1.2) both; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.fade-enter { animation: popIn .4s ease both; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>input.neon-input {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); color: #fff;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: border-color .15s ease, box-shadow .15s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>input.neon-input:focus { outline: none; border-color: var(--neon-violet); box-shadow: 0 0 0 4px rgba(167,139,250,.2); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.hud-val { text-shadow: 0 0 14px rgba(255,255,255,.35); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.scrollbar-thin::-webkit-scrollbar { width: 6px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 6px; }</p>
-<p class="p1">&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p1">&lt;div class="bg-scene"&gt;&lt;/div&gt;</p>
-<p class="p1">&lt;div class="bg-grid"&gt;&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;!-- ───────────── 로그인 화면 ───────────── --&gt;</p>
-<p class="p1">&lt;section id="loginScreen" class="min-h-screen flex items-center justify-center p-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="glass rounded-3xl w-full max-w-md p-8 md:p-10 pop-in"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="flex flex-col items-center text-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="float mb-4 flex items-end gap-1"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="w-9 h-4 rounded bg-pink-400 shadow-[0_0_16px_#f472b6]"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="w-9 h-4 rounded bg-violet-400 shadow-[0_0_16px_#a78bfa]"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="w-9 h-4 rounded bg-cyan-400 shadow-[0_0_16px_#22d3ee]"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="w-9 h-4 rounded bg-emerald-400 shadow-[0_0_16px_#34d399]"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="w-9 h-4 rounded bg-amber-300 shadow-[0_0_16px_#fcd34d]"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;h1 class="orbitron text-3xl md:text-4xl font-black neon-text tracking-widest"&gt;NEON BREAKER&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;p class="mt-2 text-sm text-gray-400"&gt;화살표 키로 패들을 움직여 모든 벽돌을 부수세요!&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;form id="loginForm" class="mt-8 space-y-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="block"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="text-xs font-semibold tracking-wider text-gray-400 uppercase"&gt;플레이어 이름&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="nameInput" class="neon-input mt-2 w-full rounded-xl px-4 py-3 text-base placeholder-gray-500"</p>
-<p class="p1"><span class="Apple-converted-space">               </span>type="text" maxlength="12" placeholder="이름을 입력하세요 (최대 12자)" autocomplete="off" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button type="submit" class="btn-neon w-full rounded-xl py-3.5 text-base"&gt;게임 시작 🚀&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;p id="loginError" class="hidden text-center text-sm text-pink-400"&gt;&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/form&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="mt-8 flex items-center justify-center gap-5 text-xs text-gray-400"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;◀&lt;/span&gt;&lt;span class="key"&gt;▶&lt;/span&gt; 이동&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;SPACE&lt;/span&gt; 발사&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;P&lt;/span&gt; 일시정지&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;!-- ───────────── 게임 화면 ───────────── --&gt;</p>
-<p class="p1">&lt;section id="gameScreen" class="hidden min-h-screen p-4 md:p-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="max-w-6xl mx-auto"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- 헤더 --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;header class="glass rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 mb-5"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="flex items-center gap-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;h1 class="orbitron text-lg md:text-xl font-black neon-text tracking-widest"&gt;NEON BREAKER&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span id="dbBadge" class="hidden items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="flex items-center gap-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center gap-2 text-sm"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center font-bold text-white text-sm" id="avatar"&gt;?&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="font-semibold" id="playerNameLabel"&gt;플레이어&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="logoutBtn" class="btn-ghost text-xs px-3 py-1.5 rounded-lg"&gt;로그아웃&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;!-- 게임 영역 --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="fade-enter"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;!-- HUD --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="grid grid-cols-4 gap-3 mb-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="glass rounded-xl px-4 py-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-[10px] tracking-widest text-gray-400 uppercase"&gt;Score&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="hudScore" class="orbitron hud-val text-xl md:text-2xl font-bold text-cyan-300"&gt;0&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="glass rounded-xl px-4 py-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-[10px] tracking-widest text-gray-400 uppercase"&gt;Lives&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="hudLives" class="text-xl md:text-2xl leading-none mt-1"&gt;❤️❤️❤️&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="glass rounded-xl px-4 py-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-[10px] tracking-widest text-gray-400 uppercase"&gt;Bricks&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="hudBricks" class="orbitron hud-val text-xl md:text-2xl font-bold text-violet-300"&gt;0&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="glass rounded-xl px-4 py-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-[10px] tracking-widest text-gray-400 uppercase"&gt;Combo&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="hudCombo" class="orbitron hud-val text-xl md:text-2xl font-bold text-pink-300"&gt;x1&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;!-- 캔버스 --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="relative"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;canvas id="game" width="800" height="520"&gt;&lt;/canvas&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div id="overlay" class="overlay"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="px-6 max-w-md pop-in"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;div id="ovEmoji" class="text-5xl mb-3"&gt;🎮&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;h2 id="ovTitle" class="orbitron text-2xl md:text-3xl font-black text-white mb-2"&gt;READY?&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;p id="ovDesc" class="text-sm text-gray-300 mb-5"&gt;스페이스 키 또는 ▲ 키를 눌러 공을 발사하세요.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;div id="ovStats" class="hidden mb-5 grid grid-cols-2 gap-2 text-left text-sm"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="glass rounded-lg px-3 py-2"&gt;&lt;div class="text-[10px] text-gray-400 uppercase"&gt;최종 점수&lt;/div&gt;&lt;div id="ovScore" class="orbitron text-lg font-bold text-cyan-300"&gt;0&lt;/div&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="glass rounded-lg px-3 py-2"&gt;&lt;div class="text-[10px] text-gray-400 uppercase"&gt;보너스&lt;/div&gt;&lt;div id="ovBonus" class="orbitron text-lg font-bold text-amber-300"&gt;+0&lt;/div&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;div class="flex items-center justify-center gap-3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;button id="ovPrimary" class="btn-neon rounded-xl px-6 py-2.5 text-sm"&gt;시작하기&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;button id="ovSecondary" class="btn-ghost hidden rounded-xl px-5 py-2.5 text-sm"&gt;다시 시작&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">              </span>&lt;p id="ovSave" class="mt-4 text-xs text-gray-400"&gt;&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;!-- 조작 안내 --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mt-3 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;◀&lt;/span&gt;&lt;span class="key"&gt;▶&lt;/span&gt; 패들 이동&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;SPACE&lt;/span&gt; / &lt;span class="key"&gt;▲&lt;/span&gt; 발사&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;P&lt;/span&gt; 일시정지&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="flex items-center gap-1.5"&gt;&lt;span class="key"&gt;R&lt;/span&gt; 재시작&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="text-gray-500"&gt;마우스로도 조작 가능&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;!-- 순위표 --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;aside class="glass rounded-2xl p-5 fade-enter h-fit lg:sticky lg:top-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center justify-between mb-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;h3 class="orbitron font-bold tracking-widest text-sm flex items-center gap-2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;span class="text-amber-300"&gt;🏆&lt;/span&gt; TOP 10</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span class="flex items-center gap-1.5 text-[11px] text-emerald-300"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot shadow-[0_0_8px_#34d399]"&gt;&lt;/span&gt; 실시간</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;ol id="leaderboard" class="space-y-2 max-h-[560px] overflow-y-auto scrollbar-thin pr-1"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;li class="text-center text-sm text-gray-500 py-8"&gt;불러오는 중...&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/ol&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mt-4 pt-4 border-t border-white/10 text-xs text-gray-400 flex items-center justify-between"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;내 최고 기록&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span id="myBest" class="orbitron font-bold text-cyan-300"&gt;0&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/aside&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;script type="module"&gt;</p>
-<p class="p1">/* ══════════════════════════════════════════════════════════════</p>
-<p class="p1"><span class="Apple-converted-space">   </span>Firebase 설정</p>
-<p class="p1"><span class="Apple-converted-space">   </span>- 아래 값들을 본인의 Firebase 프로젝트 정보로 교체하세요.</p>
-<p class="p1"><span class="Apple-converted-space">   </span>- Realtime Database 규칙 예시 (테스트용):</p>
-<p class="p1"><span class="Apple-converted-space">     </span>{ "rules": { "scores": { ".read": true, ".write": true,</p>
-<p class="p1"><span class="Apple-converted-space">       </span>".indexOn": ["score"] } } }</p>
-<p class="p1"><span class="Apple-converted-space">   </span>══════════════════════════════════════════════════════════════ */</p>
-<p class="p1">// Import the functions you need from the SDKs you need</p>
-<p class="p1">import { initializeApp } from "firebase/app";</p>
-<p class="p1">// TODO: Add SDKs for Firebase products that you want to use</p>
-<p class="p1">// https://firebase.google.com/docs/web/setup#available-libraries</p>
-<p class="p2"><br></p>
-<p class="p1">// Your web app's Firebase configuration</p>
-<p class="p1">// For Firebase JS SDK v7.20.0 and later, measurementId is optional</p>
-<p class="p1">const firebaseConfig = {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>apiKey: "AIzaSyB8UlzT5jIuaSj2vwA9d_xJdYfKRt2DzWk",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>authDomain: "my-brick-breaker-game-4ea26.firebaseapp.com",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>databaseURL: "https://my-brick-breaker-game-4ea26-default-rtdb.firebaseio.com",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>projectId: "my-brick-breaker-game-4ea26",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>storageBucket: "my-brick-breaker-game-4ea26.firebasestorage.app",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>messagingSenderId: "871793952963",</p>
-<p class="p1"><span class="Apple-converted-space">  </span>appId: "1:871793952963:web:17d615fd8dfdaf5d177a76",</p>
-<p class="p2"><br></p>
-<p class="p1">// Initialize Firebase</p>
-<p class="p1">const app = initializeApp(firebaseConfig);</p>
-<p class="p1">/* ───────── 점수 저장소 (Firebase / 로컬 폴백) ───────── */</p>
-<p class="p1">const Store = {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>mode: ‘firebase,<span class="Apple-converted-space">          </span>// 'firebase' | 'local'</p>
-<p class="p1"><span class="Apple-converted-space">  </span>fb: null,</p>
-<p class="p1"><span class="Apple-converted-space">  </span>listeners: [],</p>
-<p class="p1"><span class="Apple-converted-space">  </span>async init() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const isPlaceholder = !firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY' || !firebaseConfig.databaseURL || firebaseConfig.databaseURL === 'YOUR_DATABASE_URL';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (!isPlaceholder) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>try {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const dbMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const app = initializeApp(firebaseConfig);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const db = dbMod.getDatabase(app);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.fb = { ...dbMod, db };</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.mode = 'firebase';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} catch (e) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>console.warn('Firebase 초기화 실패, 로컬 모드로 전환합니다.', e);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.mode = 'local';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.updateBadge();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>updateBadge() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const b = document.getElementById('dbBadge');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.classList.remove('hidden'); b.classList.add('inline-flex');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'firebase') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.className = 'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-emerald-400/40 text-emerald-300 bg-emerald-400/10';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.innerHTML = '&lt;span class="w-1.5 h-1.5 rounded-full bg-emerald-400"&gt;&lt;/span&gt;Firebase 연결됨';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.className = 'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-amber-400/40 text-amber-300 bg-amber-400/10';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.innerHTML = '&lt;span class="w-1.5 h-1.5 rounded-full bg-amber-400"&gt;&lt;/span&gt;로컬 모드 · Firebase 설정 필요';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.title = 'firebaseConfig를 입력하면 실시간 DB에 저장됩니다.';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* 상위 10명 실시간 구독 */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>subscribeTop10(cb) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'firebase') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const { ref, query, orderByChild, limitToLast, onValue, db } = this.fb;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const q = query(ref(db, 'scores'), orderByChild('score'), limitToLast(10));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return onValue(q, snap =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const list = [];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>snap.forEach(child =&gt; { list.push({ id: child.key, ...child.val() }); });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>list.sort((a, b) =&gt; b.score - a.score || a.timestamp - b.timestamp);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>cb(list);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}, err =&gt; { console.error(err); cb([], err); });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const emit = () =&gt; cb(this.localTop10());</p>
-<p class="p1"><span class="Apple-converted-space">      </span>this.listeners.push(emit);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>window.addEventListener('storage', emit);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>emit();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return () =&gt; { this.listeners = this.listeners.filter(f =&gt; f !== emit); window.removeEventListener('storage', emit); };</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>localAll() { try { return JSON.parse(localStorage.getItem('neon_breaker_scores') || '[]'); } catch { return []; } },</p>
-<p class="p1"><span class="Apple-converted-space">  </span>localTop10() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return this.localAll().sort((a, b) =&gt; b.score - a.score || a.timestamp - b.timestamp).slice(0, 10);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>async saveScore(entry) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'firebase') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const { ref, push, serverTimestamp, db } = this.fb;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>await push(ref(db, 'scores'), { ...entry, timestamp: serverTimestamp() });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const all = this.localAll();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>all.push({ ...entry, id: 'l' + Date.now(), timestamp: Date.now() });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>localStorage.setItem('neon_breaker_scores', JSON.stringify(all.slice(-500)));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>this.listeners.forEach(f =&gt; f());</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">};</p>
-<p class="p2"><br></p>
-<p class="p1">/* ───────── DOM 참조 ───────── */</p>
-<p class="p1">const $ = id =&gt; document.getElementById(id);</p>
-<p class="p1">const loginScreen = $('loginScreen'), gameScreen = $('gameScreen');</p>
-<p class="p1">const canvas = $('game'), ctx = canvas.getContext('2d');</p>
-<p class="p1">const overlay = $('overlay');</p>
-<p class="p1">const W = canvas.width, H = canvas.height;</p>
-<p class="p2"><br></p>
-<p class="p1">/* ───────── 플레이어 ───────── */</p>
-<p class="p1">let player = null;</p>
-<p class="p1">let myBest = 0;</p>
-<p class="p2"><br></p>
-<p class="p1">$('loginForm').addEventListener('submit', async e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>e.preventDefault();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const name = $('nameInput').value.trim();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const err = $('loginError');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (name.length &lt; 1) { err.textContent = '이름을 입력해주세요.'; err.classList.remove('hidden'); return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (/[.#$\[\]/]/.test(name)) { err.textContent = '. # $ [ ] / 문자는 사용할 수 없습니다.'; err.classList.remove('hidden'); return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>err.classList.add('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>player = name;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>localStorage.setItem('neon_breaker_name', name);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$('playerNameLabel').textContent = name;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$('avatar').textContent = name[0].toUpperCase();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>loginScreen.classList.add('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>gameScreen.classList.remove('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Game.reset();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Game.showOverlay('ready');</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">$('logoutBtn').addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>player = null;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Game.stop();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>gameScreen.classList.add('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>loginScreen.classList.remove('hidden');</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">const savedName = localStorage.getItem('neon_breaker_name');</p>
-<p class="p1">if (savedName) $('nameInput').value = savedName;</p>
-<p class="p2"><br></p>
-<p class="p1">/* ───────── 순위표 ───────── */</p>
-<p class="p1">function renderLeaderboard(list, err) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const ol = $('leaderboard');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (err) { ol.innerHTML = `&lt;li class="text-center text-sm text-pink-400 py-6"&gt;순위를 불러오지 못했습니다.&lt;br&gt;&lt;span class="text-xs text-gray-500"&gt;DB 규칙/설정을 확인하세요.&lt;/span&gt;&lt;/li&gt;`; return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!list.length) { ol.innerHTML = `&lt;li class="text-center text-sm text-gray-500 py-8"&gt;아직 기록이 없습니다.&lt;br&gt;첫 번째 챔피언이 되어보세요! ✨&lt;/li&gt;`; return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const medals = ['🥇', '🥈', '🥉'];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ol.innerHTML = list.map((r, i) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const me = player &amp;&amp; r.name === player;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const rankStyle = i === 0 ? 'text-amber-300' : i === 1 ? 'text-gray-200' : i === 2 ? 'text-orange-300' : 'text-gray-500';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return `&lt;li class="rank-item flex items-center gap-3 rounded-xl px-3 py-2.5 border border-white/5 ${me ? 'rank-me' : ''}"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="orbitron w-7 text-center text-sm font-bold ${rankStyle}"&gt;${medals[i] || i + 1}&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="flex-1 truncate text-sm font-medium ${me ? 'text-cyan-200' : ''}"&gt;${escapeHtml(r.name)}${me ? ' &lt;span class="text-[10px] text-cyan-300"&gt;ME&lt;/span&gt;' : ''}${r.win ? ' &lt;span title="클리어"&gt;👑&lt;/span&gt;' : ''}&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="orbitron text-sm font-bold text-white"&gt;${Number(r.score).toLocaleString()}&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/li&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}).join('');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>// 내 최고 기록 갱신 (Top10 내 있을 경우)</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (player) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const mine = list.filter(r =&gt; r.name === player).map(r =&gt; r.score);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (mine.length) myBest = Math.max(myBest, ...mine);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$('myBest').textContent = myBest.toLocaleString();</p>
-<p class="p1">}</p>
-<p class="p1">function escapeHtml(s) { return String(s).replace(/[&amp;&lt;&gt;"']/g, c =&gt; ({ '&amp;': '&amp;amp;', '&lt;': '&amp;lt;', '&gt;': '&amp;gt;', '"': '&amp;quot;', "'": '&amp;#39;' }[c])); }</p>
-<p class="p2"><br></p>
-<p class="p1">/* ══════════════════════════════════════════════════════════════</p>
-<p class="p1"><span class="Apple-converted-space">   </span>게임 엔진</p>
-<p class="p1"><span class="Apple-converted-space">   </span>══════════════════════════════════════════════════════════════ */</p>
-<p class="p1">const COLS = 10, ROWS = 6, BRICK_GAP = 6, BRICK_TOP = 60, BRICK_H = 22, SIDE_PAD = 24;</p>
-<p class="p1">const BRICK_W = (W - SIDE_PAD * 2 - BRICK_GAP * (COLS - 1)) / COLS;</p>
-<p class="p1">const ROW_COLORS = [</p>
-<p class="p1"><span class="Apple-converted-space">  </span>['#fb7185', '#f43f5e'], ['#f472b6', '#ec4899'], ['#a78bfa', '#8b5cf6'],</p>
-<p class="p1"><span class="Apple-converted-space">  </span>['#60a5fa', '#3b82f6'], ['#22d3ee', '#06b6d4'], ['#34d399', '#10b981']</p>
-<p class="p1">];</p>
-<p class="p1">const BASE_SPEED = 360, MAX_SPEED = 620, PADDLE_SPEED = 560;</p>
-<p class="p2"><br></p>
-<p class="p1">const Game = {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>mode: 'idle',<span class="Apple-converted-space">      </span>// idle | playing | paused | over</p>
-<p class="p1"><span class="Apple-converted-space">  </span>score: 0, lives: 3, combo: 0, maxCombo: 0, broken: 0,</p>
-<p class="p1"><span class="Apple-converted-space">  </span>bricks: [], particles: [], stars: [],</p>
-<p class="p1"><span class="Apple-converted-space">  </span>paddle: { x: W / 2 - 60, y: H - 34, w: 120, h: 14 },</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ball: { x: W / 2, y: 0, r: 8, vx: 0, vy: 0, speed: BASE_SPEED, trail: [] },</p>
-<p class="p1"><span class="Apple-converted-space">  </span>keys: { left: false, right: false },</p>
-<p class="p1"><span class="Apple-converted-space">  </span>raf: null, last: 0, saved: false, shake: 0, flash: 0,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>reset() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.score = 0; this.lives = 3; this.combo = 0; this.maxCombo = 0; this.broken = 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.saved = false; this.particles = []; this.shake = 0; this.flash = 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.buildBricks();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (!this.stars.length) for (let i = 0; i &lt; 60; i++) this.stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + .3, a: Math.random() });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.resetBall();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.mode = 'idle';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.updateHUD();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame(t =&gt; this.loop(t)); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = null; this.mode = 'idle'; },</p>
-<p class="p1"><span class="Apple-converted-space">  </span>buildBricks() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.bricks = [];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (let r = 0; r &lt; ROWS; r++) for (let c = 0; c &lt; COLS; c++) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>this.bricks.push({</p>
-<p class="p1"><span class="Apple-converted-space">        </span>x: SIDE_PAD + c * (BRICK_W + BRICK_GAP), y: BRICK_TOP + r * (BRICK_H + BRICK_GAP),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>w: BRICK_W, h: BRICK_H, row: r, alive: true, points: (ROWS - r) * 10, hp: r === 0 ? 2 : 1</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>resetBall() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const b = this.ball;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.x = this.paddle.x + this.paddle.w / 2; b.y = this.paddle.y - b.r - 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.vx = 0; b.vy = 0; b.trail = [];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.speed = Math.min(MAX_SPEED, BASE_SPEED + this.broken * 3);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>launch() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode !== 'idle') return;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const ang = (-Math.PI / 2) + (Math.random() * .6 - .3);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.ball.vx = Math.cos(ang) * this.ball.speed;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.ball.vy = Math.sin(ang) * this.ball.speed;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.mode = 'playing';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.hideOverlay();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>togglePause() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'playing') { this.mode = 'paused'; this.showOverlay('paused'); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>else if (this.mode === 'paused') { this.mode = 'playing'; this.hideOverlay(); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── 오버레이 ── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>showOverlay(type, data = {}) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const set = (id, v) =&gt; $(id).textContent = v;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const stats = $('ovStats'), sec = $('ovSecondary'), pri = $('ovPrimary');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>stats.classList.add('hidden'); sec.classList.add('hidden'); $('ovSave').textContent = '';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (type === 'ready') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovEmoji', '🎮'); set('ovTitle', 'READY?'); set('ovDesc', '스페이스 키 또는 ▲ 키를 눌러 공을 발사하세요.'); set('ovPrimary', '시작하기');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>pri.onclick = () =&gt; this.launch();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (type === 'paused') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovEmoji', '⏸️'); set('ovTitle', 'PAUSED'); set('ovDesc', 'P 키를 눌러 계속 진행하세요.'); set('ovPrimary', '계속하기');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>pri.onclick = () =&gt; this.togglePause();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (type === 'life') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovEmoji', '💔'); set('ovTitle', `LIVES: ${this.lives}`); set('ovDesc', '아직 기회가 있어요! 스페이스 키로 다시 발사하세요.'); set('ovPrimary', '다시 발사');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>pri.onclick = () =&gt; this.launch();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (type === 'win' || type === 'lose') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovEmoji', type === 'win' ? '🏆' : '💥');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovTitle', type === 'win' ? 'STAGE CLEAR!' : 'GAME OVER');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovDesc', type === 'win' ? `모든 벽돌을 깼습니다! 최대 콤보 x${this.maxCombo}` : `최대 콤보 x${this.maxCombo} · 다음엔 더 잘할 수 있어요!`);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>stats.classList.remove('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovScore', this.score.toLocaleString()); set('ovBonus', '+' + (data.bonus || 0).toLocaleString());</p>
-<p class="p1"><span class="Apple-converted-space">      </span>set('ovPrimary', '다시 하기'); pri.onclick = () =&gt; { this.reset(); this.showOverlay('ready'); };</p>
-<p class="p1"><span class="Apple-converted-space">      </span>sec.classList.remove('hidden'); sec.textContent = '순위 보기';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>sec.onclick = () =&gt; $('leaderboard').scrollIntoView({ behavior: 'smooth', block: 'center' });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>overlay.classList.remove('hidden-ov');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>hideOverlay() { overlay.classList.add('hidden-ov'); },</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>updateHUD() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$('hudScore').textContent = this.score.toLocaleString();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$('hudLives').textContent = '❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 3 - this.lives));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$('hudBricks').textContent = this.bricks.filter(b =&gt; b.alive).length;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$('hudCombo').textContent = 'x' + Math.max(1, this.combo);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── 종료 처리 ── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>async endGame(win) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.mode = 'over';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const bonus = win ? this.lives * 150 + 300 : 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.score += bonus;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.updateHUD();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.showOverlay(win ? 'win' : 'lose', { bonus });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (win) this.burst(W / 2, H / 2, 80, ['#f472b6', '#a78bfa', '#22d3ee', '#fcd34d', '#34d399']);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.saved || !player) return;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.saved = true;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const saveEl = $('ovSave');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>saveEl.textContent = '점수 저장 중...';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>try {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>await Store.saveScore({ name: player, score: this.score, win, maxCombo: this.maxCombo });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>myBest = Math.max(myBest, this.score); $('myBest').textContent = myBest.toLocaleString();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>saveEl.textContent = Store.mode === 'firebase' ? '✅ Firebase에 점수가 저장되었습니다.' : '✅ 점수가 저장되었습니다. (로컬 모드)';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} catch (e) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>console.error(e); saveEl.textContent = '⚠️ 점수 저장에 실패했습니다. DB 규칙을 확인하세요.';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── 파티클 ── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>burst(x, y, n, colors) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (let i = 0; i &lt; n; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 220;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .5 + Math.random() * .5, max: 1, r: 1.5 + Math.random() * 3, c: colors[Math.floor(Math.random() * colors.length)] });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── 업데이트 ── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>update(dt) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const p = this.paddle, b = this.ball;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 패들 이동</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'playing' || this.mode === 'idle') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (this.keys.left) p.x -= PADDLE_SPEED * dt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (this.keys.right) p.x += PADDLE_SPEED * dt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>p.x = Math.max(8, Math.min(W - p.w - 8, p.x));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode === 'idle') { b.x = p.x + p.w / 2; b.y = p.y - b.r - 1; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 파티클</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (const q of this.particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 300 * dt; q.life -= dt; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.particles = this.particles.filter(q =&gt; q.life &gt; 0);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.shake = Math.max(0, this.shake - dt * 30);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.flash = Math.max(0, this.flash - dt * 3);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.mode !== 'playing') return;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 공 이동 (서브스텝으로 터널링 방지)</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const steps = Math.ceil(Math.hypot(b.vx, b.vy) * dt / 6);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const sdt = dt / steps;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (let s = 0; s &lt; steps; s++) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>b.x += b.vx * sdt; b.y += b.vy * sdt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// 벽</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (b.x - b.r &lt; 0) { b.x = b.r; b.vx = Math.abs(b.vx); }</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (b.x + b.r &gt; W) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (b.y - b.r &lt; 0) { b.y = b.r; b.vy = Math.abs(b.vy); }</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// 패들</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (b.vy &gt; 0 &amp;&amp; b.y + b.r &gt;= p.y &amp;&amp; b.y + b.r &lt;= p.y + p.h + 10 &amp;&amp; b.x &gt;= p.x - b.r &amp;&amp; b.x &lt;= p.x + p.w + b.r) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const hit = ((b.x - (p.x + p.w / 2)) / (p.w / 2));</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const ang = hit * (Math.PI / 3); <span class="Apple-converted-space">  </span>// 최대 60도</p>
-<p class="p1"><span class="Apple-converted-space">        </span>b.vx = Math.sin(ang) * b.speed; b.vy = -Math.cos(ang) * b.speed;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>b.y = p.y - b.r;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.combo = 0; this.updateHUD();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// 벽돌</p>
-<p class="p1"><span class="Apple-converted-space">      </span>for (const br of this.bricks) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!br.alive) continue;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const cx = Math.max(br.x, Math.min(b.x, br.x + br.w));</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const cy = Math.max(br.y, Math.min(b.y, br.y + br.h));</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const dx = b.x - cx, dy = b.y - cy;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (dx * dx + dy * dy &lt;= b.r * b.r) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>// 충돌 방향 판정</p>
-<p class="p1"><span class="Apple-converted-space">          </span>const overlapX = b.r - Math.abs(dx), overlapY = b.r - Math.abs(dy);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (Math.abs(dx) &gt; Math.abs(dy) &amp;&amp; dx !== 0) { b.vx = dx &gt; 0 ? Math.abs(b.vx) : -Math.abs(b.vx); b.x += dx &gt; 0 ? overlapX : -overlapX; }</p>
-<p class="p1"><span class="Apple-converted-space">          </span>else { b.vy = dy &gt; 0 ? Math.abs(b.vy) : -Math.abs(b.vy); b.y += dy &gt; 0 ? overlapY : -overlapY; }</p>
-<p class="p1"><span class="Apple-converted-space">          </span>br.hp--;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (br.hp &lt;= 0) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>br.alive = false; this.broken++;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>this.combo++; this.maxCombo = Math.max(this.maxCombo, this.combo);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>this.score += br.points * Math.max(1, this.combo);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>this.burst(br.x + br.w / 2, br.y + br.h / 2, 14, ROW_COLORS[br.row]);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>b.speed = Math.min(MAX_SPEED, BASE_SPEED + this.broken * 3);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const m = Math.hypot(b.vx, b.vy); b.vx = b.vx / m * b.speed; b.vy = b.vy / m * b.speed;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>this.score += 5; this.burst(b.x, b.y, 5, ['#ffffff']);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>}</p>
-<p class="p1"><span class="Apple-converted-space">          </span>this.shake = 4; this.updateHUD();</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (!this.bricks.some(x =&gt; x.alive)) { this.endGame(true); return; }</p>
-<p class="p1"><span class="Apple-converted-space">          </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// 낙하</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (b.y - b.r &gt; H) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.lives--; this.combo = 0; this.flash = 1; this.shake = 8; this.updateHUD();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (this.lives &lt;= 0) { this.resetBall(); this.endGame(false); return; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>this.resetBall(); this.mode = 'idle'; this.showOverlay('life'); return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 수직 속도가 너무 작아지는 것 방지</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (Math.abs(b.vy) &lt; b.speed * .2) { const sign = b.vy &lt; 0 ? -1 : 1; b.vy = sign * b.speed * .2; const m = Math.hypot(b.vx, b.vy); b.vx = b.vx / m * b.speed; b.vy = b.vy / m * b.speed; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.trail.push({ x: b.x, y: b.y }); if (b.trail.length &gt; 10) b.trail.shift();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── 렌더 ── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>draw() {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.save();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.clearRect(0, 0, W, H);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.shake &gt; 0) ctx.translate((Math.random() - .5) * this.shake, (Math.random() - .5) * this.shake);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 별</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (const s of this.stars) { s.a += .01; ctx.globalAlpha = .3 + Math.abs(Math.sin(s.a)) * .5; ctx.fillStyle = '#c7d2fe'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.globalAlpha = 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 상단 라인</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, 'rgba(244,114,182,0)'); g.addColorStop(.5, 'rgba(167,139,250,.8)'); g.addColorStop(1, 'rgba(34,211,238,0)');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.fillStyle = g; ctx.fillRect(0, 0, W, 2);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 벽돌</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (const br of this.bricks) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (!br.alive) continue;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const [c1, c2] = ROW_COLORS[br.row];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const bg = ctx.createLinearGradient(br.x, br.y, br.x, br.y + br.h); bg.addColorStop(0, c1); bg.addColorStop(1, c2);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>ctx.shadowColor = c1; ctx.shadowBlur = 12;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillStyle = bg; roundRect(br.x, br.y, br.w, br.h, 6); ctx.fill();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>ctx.shadowBlur = 0;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillStyle = 'rgba(255,255,255,.28)'; roundRect(br.x + 3, br.y + 3, br.w - 6, 5, 3); ctx.fill();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (br.hp &gt; 1) { ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; roundRect(br.x + 1, br.y + 1, br.w - 2, br.h - 2, 5); ctx.stroke(); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 공 트레일</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const b = this.ball;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>b.trail.forEach((t, i) =&gt; { ctx.globalAlpha = (i / b.trail.length) * .35; ctx.fillStyle = '#a5f3fc'; ctx.beginPath(); ctx.arc(t.x, t.y, b.r * (i / b.trail.length), 0, 7); ctx.fill(); });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.globalAlpha = 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 공</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 20;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const bgd = ctx.createRadialGradient(b.x - 3, b.y - 3, 1, b.x, b.y, b.r); bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(1, '#22d3ee');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.fillStyle = bgd; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.shadowBlur = 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 패들</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const p = this.paddle;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const pg = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0); pg.addColorStop(0, '#f472b6'); pg.addColorStop(.5, '#a78bfa'); pg.addColorStop(1, '#22d3ee');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.shadowColor = '#a78bfa'; ctx.shadowBlur = 18;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.fillStyle = pg; roundRect(p.x, p.y, p.w, p.h, 8); ctx.fill();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.shadowBlur = 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.fillStyle = 'rgba(255,255,255,.35)'; roundRect(p.x + 6, p.y + 3, p.w - 12, 4, 2); ctx.fill();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 파티클</p>
-<p class="p1"><span class="Apple-converted-space">    </span>for (const q of this.particles) { ctx.globalAlpha = Math.max(0, q.life / q.max); ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill(); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.globalAlpha = 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 피격 플래시</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (this.flash &gt; 0) { ctx.fillStyle = `rgba(244,63,94,${this.flash * .25})`; ctx.fillRect(-10, -10, W + 20, H + 20); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ctx.restore();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>loop(t) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const dt = Math.min(.033, (t - this.last) / 1000); this.last = t;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.update(dt); this.draw();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>this.raf = requestAnimationFrame(tt =&gt; this.loop(tt));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">};</p>
-<p class="p1">function roundRect(x, y, w, h, r) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ctx.beginPath();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">/* ───────── 입력 ───────── */</p>
-<p class="p1">window.addEventListener('keydown', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!player) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (e.target.tagName === 'INPUT') return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const k = e.key;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(k)) e.preventDefault();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'ArrowLeft' || k === 'a' || k === 'A') Game.keys.left = true;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'ArrowRight' || k === 'd' || k === 'D') Game.keys.right = true;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === ' ' || k === 'ArrowUp') { if (Game.mode === 'idle') Game.launch(); else if (Game.mode === 'over') { Game.reset(); Game.showOverlay('ready'); } }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'p' || k === 'P' || k === 'Escape') Game.togglePause();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'r' || k === 'R') { Game.reset(); Game.showOverlay('ready'); }</p>
-<p class="p1">});</p>
-<p class="p1">window.addEventListener('keyup', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const k = e.key;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'ArrowLeft' || k === 'a' || k === 'A') Game.keys.left = false;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (k === 'ArrowRight' || k === 'd' || k === 'D') Game.keys.right = false;</p>
-<p class="p1">});</p>
-<p class="p1">canvas.addEventListener('mousemove', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (Game.mode !== 'playing' &amp;&amp; Game.mode !== 'idle') return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const rect = canvas.getBoundingClientRect();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const x = (e.clientX - rect.left) * (W / rect.width);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Game.paddle.x = Math.max(8, Math.min(W - Game.paddle.w - 8, x - Game.paddle.w / 2));</p>
-<p class="p1">});</p>
-<p class="p1">canvas.addEventListener('click', () =&gt; { if (Game.mode === 'idle') Game.launch(); });</p>
-<p class="p1">canvas.addEventListener('touchmove', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>e.preventDefault();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const rect = canvas.getBoundingClientRect();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const x = (e.touches[0].clientX - rect.left) * (W / rect.width);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Game.paddle.x = Math.max(8, Math.min(W - Game.paddle.w - 8, x - Game.paddle.w / 2));</p>
-<p class="p1">}, { passive: false });</p>
-<p class="p1">canvas.addEventListener('touchstart', () =&gt; { if (Game.mode === 'idle') Game.launch(); }, { passive: true });</p>
-<p class="p2"><br></p>
-<p class="p1">/* ───────── 초기화 ───────── */</p>
-<p class="p1">(async () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>await Store.init();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Store.subscribeTop10(renderLeaderboard);</p>
-<p class="p1">})();</p>
-<p class="p1">&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+<div class="bg-scene"></div>
+<div class="bg-grid"></div>
+
+<!-- ───────────── 로그인 화면 ───────────── -->
+<section id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+  <div class="glass rounded-3xl w-full max-w-md p-8 md:p-10 pop-in">
+    <div class="flex flex-col items-center text-center">
+      <div class="float mb-4 flex items-end gap-1">
+        <span class="w-9 h-4 rounded bg-pink-400 shadow-[0_0_16px_#f472b6]"></span>
+        <span class="w-9 h-4 rounded bg-violet-400 shadow-[0_0_16px_#a78bfa]"></span>
+        <span class="w-9 h-4 rounded bg-cyan-400 shadow-[0_0_16px_#22d3ee]"></span>
+        <span class="w-9 h-4 rounded bg-emerald-400 shadow-[0_0_16px_#34d399]"></span>
+        <span class="w-9 h-4 rounded bg-amber-300 shadow-[0_0_16px_#fcd34d]"></span>
+      </div>
+      <h1 class="orbitron text-3xl md:text-4xl font-black neon-text tracking-widest">NEON BREAKER</h1>
+      <p class="mt-2 text-sm text-gray-400">화살표 키로 패들을 움직여 모든 벽돌을 부수세요!</p>
+    </div>
+
+    <form id="loginForm" class="mt-8 space-y-4">
+      <label class="block">
+        <span class="text-xs font-semibold tracking-wider text-gray-400 uppercase">플레이어 이름</span>
+        <input id="nameInput" class="neon-input mt-2 w-full rounded-xl px-4 py-3 text-base placeholder-gray-500"
+               type="text" maxlength="12" placeholder="이름을 입력하세요 (최대 12자)" autocomplete="off" required>
+      </label>
+      <button type="submit" class="btn-neon w-full rounded-xl py-3.5 text-base">게임 시작 🚀</button>
+      <p id="loginError" class="hidden text-center text-sm text-pink-400"></p>
+    </form>
+
+    <div class="mt-8 flex items-center justify-center gap-5 text-xs text-gray-400">
+      <span class="flex items-center gap-1.5"><span class="key">◀</span><span class="key">▶</span> 이동</span>
+      <span class="flex items-center gap-1.5"><span class="key">SPACE</span> 발사</span>
+      <span class="flex items-center gap-1.5"><span class="key">P</span> 일시정지</span>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── 게임 화면 ───────────── -->
+<section id="gameScreen" class="hidden min-h-screen p-4 md:p-6">
+  <div class="max-w-6xl mx-auto">
+    <!-- 헤더 -->
+    <header class="glass rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div class="flex items-center gap-3">
+        <h1 class="orbitron text-lg md:text-xl font-black neon-text tracking-widest">NEON BREAKER</h1>
+        <span id="dbBadge" class="hidden items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center font-bold text-white text-sm" id="avatar">?</span>
+          <span class="font-semibold" id="playerNameLabel">플레이어</span>
+        </div>
+        <button id="logoutBtn" class="btn-ghost text-xs px-3 py-1.5 rounded-lg">로그아웃</button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+      <!-- 게임 영역 -->
+      <div class="fade-enter">
+        <!-- HUD -->
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div class="glass rounded-xl px-4 py-3">
+            <div class="text-[10px] tracking-widest text-gray-400 uppercase">Score</div>
+            <div id="hudScore" class="orbitron hud-val text-xl md:text-2xl font-bold text-cyan-300">0</div>
+          </div>
+          <div class="glass rounded-xl px-4 py-3">
+            <div class="text-[10px] tracking-widest text-gray-400 uppercase">Lives</div>
+            <div id="hudLives" class="text-xl md:text-2xl leading-none mt-1">❤️❤️❤️</div>
+          </div>
+          <div class="glass rounded-xl px-4 py-3">
+            <div class="text-[10px] tracking-widest text-gray-400 uppercase">Bricks</div>
+            <div id="hudBricks" class="orbitron hud-val text-xl md:text-2xl font-bold text-violet-300">0</div>
+          </div>
+          <div class="glass rounded-xl px-4 py-3">
+            <div class="text-[10px] tracking-widest text-gray-400 uppercase">Combo</div>
+            <div id="hudCombo" class="orbitron hud-val text-xl md:text-2xl font-bold text-pink-300">x1</div>
+          </div>
+        </div>
+
+        <!-- 캔버스 -->
+        <div class="relative">
+          <canvas id="game" width="800" height="520"></canvas>
+
+          <div id="overlay" class="overlay">
+            <div class="px-6 max-w-md pop-in">
+              <div id="ovEmoji" class="text-5xl mb-3">🎮</div>
+              <h2 id="ovTitle" class="orbitron text-2xl md:text-3xl font-black text-white mb-2">READY?</h2>
+              <p id="ovDesc" class="text-sm text-gray-300 mb-5">스페이스 키 또는 ▲ 키를 눌러 공을 발사하세요.</p>
+              <div id="ovStats" class="hidden mb-5 grid grid-cols-2 gap-2 text-left text-sm">
+                <div class="glass rounded-lg px-3 py-2"><div class="text-[10px] text-gray-400 uppercase">최종 점수</div><div id="ovScore" class="orbitron text-lg font-bold text-cyan-300">0</div></div>
+                <div class="glass rounded-lg px-3 py-2"><div class="text-[10px] text-gray-400 uppercase">보너스</div><div id="ovBonus" class="orbitron text-lg font-bold text-amber-300">+0</div></div>
+              </div>
+              <div class="flex items-center justify-center gap-3">
+                <button id="ovPrimary" class="btn-neon rounded-xl px-6 py-2.5 text-sm">시작하기</button>
+                <button id="ovSecondary" class="btn-ghost hidden rounded-xl px-5 py-2.5 text-sm">다시 시작</button>
+              </div>
+              <p id="ovSave" class="mt-4 text-xs text-gray-400"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 조작 안내 -->
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400">
+          <span class="flex items-center gap-1.5"><span class="key">◀</span><span class="key">▶</span> 패들 이동</span>
+          <span class="flex items-center gap-1.5"><span class="key">SPACE</span> / <span class="key">▲</span> 발사</span>
+          <span class="flex items-center gap-1.5"><span class="key">P</span> 일시정지</span>
+          <span class="flex items-center gap-1.5"><span class="key">R</span> 재시작</span>
+          <span class="text-gray-500">마우스로도 조작 가능</span>
+        </div>
+      </div>
+
+      <!-- 순위표 -->
+      <aside class="glass rounded-2xl p-5 fade-enter h-fit lg:sticky lg:top-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="orbitron font-bold tracking-widest text-sm flex items-center gap-2">
+            <span class="text-amber-300">🏆</span> TOP 10
+          </h3>
+          <span class="flex items-center gap-1.5 text-[11px] text-emerald-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot shadow-[0_0_8px_#34d399]"></span> 실시간
+          </span>
+        </div>
+        <ol id="leaderboard" class="space-y-2 max-h-[560px] overflow-y-auto scrollbar-thin pr-1">
+          <li class="text-center text-sm text-gray-500 py-8">불러오는 중...</li>
+        </ol>
+        <div class="mt-4 pt-4 border-t border-white/10 text-xs text-gray-400 flex items-center justify-between">
+          <span>내 최고 기록</span>
+          <span id="myBest" class="orbitron font-bold text-cyan-300">0</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+/* ══════════════════════════════════════════════════════════════
+   Firebase 설정
+   - 아래 값들을 본인의 Firebase 프로젝트 정보로 교체하세요.
+   - Realtime Database 규칙 예시 (테스트용):
+     { "rules": { "scores": { ".read": true, ".write": true,
+       ".indexOn": ["score"] } } }
+   ══════════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+    apiKey: "AIzaSyB8UlzT5jIuaSj2vwA9d_xJdYfKRt2DzWk",
+    authDomain: "my-brick-breaker-game-4ea26.firebaseapp.com",
+    databaseURL: "https://my-brick-breaker-game-4ea26-default-rtdb.firebaseio.com",
+    projectId: "my-brick-breaker-game-4ea26",
+    storageBucket: "my-brick-breaker-game-4ea26.firebasestorage.app",
+    messagingSenderId: "871793952963",
+    appId: "1:871793952963:web:17d615fd8dfdaf5d177a76",
+    measurementId: "G-M9VRYC1C2J"
+  };
+
+/* ───────── 점수 저장소 (Firebase / 로컬 폴백) ───────── */
+const Store = {
+  mode: 'local',          // 'firebase' | 'local'
+  fb: null,
+  listeners: [],
+  async init() {
+    const isPlaceholder = !firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY' || !firebaseConfig.databaseURL || firebaseConfig.databaseURL === 'YOUR_DATABASE_URL';
+    if (!isPlaceholder) {
+      try {
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+        const dbMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+        const app = initializeApp(firebaseConfig);
+        const db = dbMod.getDatabase(app);
+        this.fb = { ...dbMod, db };
+        this.mode = 'firebase';
+      } catch (e) {
+        console.warn('Firebase 초기화 실패, 로컬 모드로 전환합니다.', e);
+        this.mode = 'local';
+      }
+    }
+    this.updateBadge();
+  },
+  updateBadge() {
+    const b = document.getElementById('dbBadge');
+    b.classList.remove('hidden'); b.classList.add('inline-flex');
+    if (this.mode === 'firebase') {
+      b.className = 'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-emerald-400/40 text-emerald-300 bg-emerald-400/10';
+      b.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Firebase 연결됨';
+    } else {
+      b.className = 'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-amber-400/40 text-amber-300 bg-amber-400/10';
+      b.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>로컬 모드 · Firebase 설정 필요';
+      b.title = 'firebaseConfig를 입력하면 실시간 DB에 저장됩니다.';
+    }
+  },
+  /* 상위 10명 실시간 구독 */
+  subscribeTop10(cb) {
+    if (this.mode === 'firebase') {
+      const { ref, query, orderByChild, limitToLast, onValue, db } = this.fb;
+      const q = query(ref(db, 'scores'), orderByChild('score'), limitToLast(10));
+      return onValue(q, snap => {
+        const list = [];
+        snap.forEach(child => { list.push({ id: child.key, ...child.val() }); });
+        list.sort((a, b) => b.score - a.score || a.timestamp - b.timestamp);
+        cb(list);
+      }, err => { console.error(err); cb([], err); });
+    } else {
+      const emit = () => cb(this.localTop10());
+      this.listeners.push(emit);
+      window.addEventListener('storage', emit);
+      emit();
+      return () => { this.listeners = this.listeners.filter(f => f !== emit); window.removeEventListener('storage', emit); };
+    }
+  },
+  localAll() { try { return JSON.parse(localStorage.getItem('neon_breaker_scores') || '[]'); } catch { return []; } },
+  localTop10() {
+    return this.localAll().sort((a, b) => b.score - a.score || a.timestamp - b.timestamp).slice(0, 10);
+  },
+  async saveScore(entry) {
+    if (this.mode === 'firebase') {
+      const { ref, push, serverTimestamp, db } = this.fb;
+      await push(ref(db, 'scores'), { ...entry, timestamp: serverTimestamp() });
+    } else {
+      const all = this.localAll();
+      all.push({ ...entry, id: 'l' + Date.now(), timestamp: Date.now() });
+      localStorage.setItem('neon_breaker_scores', JSON.stringify(all.slice(-500)));
+      this.listeners.forEach(f => f());
+    }
+  }
+};
+
+/* ───────── DOM 참조 ───────── */
+const $ = id => document.getElementById(id);
+const loginScreen = $('loginScreen'), gameScreen = $('gameScreen');
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const overlay = $('overlay');
+const W = canvas.width, H = canvas.height;
+
+/* ───────── 플레이어 ───────── */
+let player = null;
+let myBest = 0;
+
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('nameInput').value.trim();
+  const err = $('loginError');
+  if (name.length < 1) { err.textContent = '이름을 입력해주세요.'; err.classList.remove('hidden'); return; }
+  if (/[.#$\[\]/]/.test(name)) { err.textContent = '. # $ [ ] / 문자는 사용할 수 없습니다.'; err.classList.remove('hidden'); return; }
+  err.classList.add('hidden');
+  player = name;
+  localStorage.setItem('neon_breaker_name', name);
+  $('playerNameLabel').textContent = name;
+  $('avatar').textContent = name[0].toUpperCase();
+  loginScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  Game.reset();
+  Game.showOverlay('ready');
+});
+
+$('logoutBtn').addEventListener('click', () => {
+  player = null;
+  Game.stop();
+  gameScreen.classList.add('hidden');
+  loginScreen.classList.remove('hidden');
+});
+
+const savedName = localStorage.getItem('neon_breaker_name');
+if (savedName) $('nameInput').value = savedName;
+
+/* ───────── 순위표 ───────── */
+function renderLeaderboard(list, err) {
+  const ol = $('leaderboard');
+  if (err) { ol.innerHTML = `<li class="text-center text-sm text-pink-400 py-6">순위를 불러오지 못했습니다.<br><span class="text-xs text-gray-500">DB 규칙/설정을 확인하세요.</span></li>`; return; }
+  if (!list.length) { ol.innerHTML = `<li class="text-center text-sm text-gray-500 py-8">아직 기록이 없습니다.<br>첫 번째 챔피언이 되어보세요! ✨</li>`; return; }
+  const medals = ['🥇', '🥈', '🥉'];
+  ol.innerHTML = list.map((r, i) => {
+    const me = player && r.name === player;
+    const rankStyle = i === 0 ? 'text-amber-300' : i === 1 ? 'text-gray-200' : i === 2 ? 'text-orange-300' : 'text-gray-500';
+    return `<li class="rank-item flex items-center gap-3 rounded-xl px-3 py-2.5 border border-white/5 ${me ? 'rank-me' : ''}">
+      <span class="orbitron w-7 text-center text-sm font-bold ${rankStyle}">${medals[i] || i + 1}</span>
+      <span class="flex-1 truncate text-sm font-medium ${me ? 'text-cyan-200' : ''}">${escapeHtml(r.name)}${me ? ' <span class="text-[10px] text-cyan-300">ME</span>' : ''}${r.win ? ' <span title="클리어">👑</span>' : ''}</span>
+      <span class="orbitron text-sm font-bold text-white">${Number(r.score).toLocaleString()}</span>
+    </li>`;
+  }).join('');
+  // 내 최고 기록 갱신 (Top10 내 있을 경우)
+  if (player) {
+    const mine = list.filter(r => r.name === player).map(r => r.score);
+    if (mine.length) myBest = Math.max(myBest, ...mine);
+  }
+  $('myBest').textContent = myBest.toLocaleString();
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* ══════════════════════════════════════════════════════════════
+   게임 엔진
+   ══════════════════════════════════════════════════════════════ */
+const COLS = 10, ROWS = 6, BRICK_GAP = 6, BRICK_TOP = 60, BRICK_H = 22, SIDE_PAD = 24;
+const BRICK_W = (W - SIDE_PAD * 2 - BRICK_GAP * (COLS - 1)) / COLS;
+const ROW_COLORS = [
+  ['#fb7185', '#f43f5e'], ['#f472b6', '#ec4899'], ['#a78bfa', '#8b5cf6'],
+  ['#60a5fa', '#3b82f6'], ['#22d3ee', '#06b6d4'], ['#34d399', '#10b981']
+];
+const BASE_SPEED = 360, MAX_SPEED = 620, PADDLE_SPEED = 560;
+
+const Game = {
+  mode: 'idle',      // idle | playing | paused | over
+  score: 0, lives: 3, combo: 0, maxCombo: 0, broken: 0,
+  bricks: [], particles: [], stars: [],
+  paddle: { x: W / 2 - 60, y: H - 34, w: 120, h: 14 },
+  ball: { x: W / 2, y: 0, r: 8, vx: 0, vy: 0, speed: BASE_SPEED, trail: [] },
+  keys: { left: false, right: false },
+  raf: null, last: 0, saved: false, shake: 0, flash: 0,
+
+  reset() {
+    this.score = 0; this.lives = 3; this.combo = 0; this.maxCombo = 0; this.broken = 0;
+    this.saved = false; this.particles = []; this.shake = 0; this.flash = 0;
+    this.buildBricks();
+    if (!this.stars.length) for (let i = 0; i < 60; i++) this.stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + .3, a: Math.random() });
+    this.resetBall();
+    this.mode = 'idle';
+    this.updateHUD();
+    if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame(t => this.loop(t)); }
+  },
+  stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = null; this.mode = 'idle'; },
+  buildBricks() {
+    this.bricks = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      this.bricks.push({
+        x: SIDE_PAD + c * (BRICK_W + BRICK_GAP), y: BRICK_TOP + r * (BRICK_H + BRICK_GAP),
+        w: BRICK_W, h: BRICK_H, row: r, alive: true, points: (ROWS - r) * 10, hp: r === 0 ? 2 : 1
+      });
+    }
+  },
+  resetBall() {
+    const b = this.ball;
+    b.x = this.paddle.x + this.paddle.w / 2; b.y = this.paddle.y - b.r - 1;
+    b.vx = 0; b.vy = 0; b.trail = [];
+    b.speed = Math.min(MAX_SPEED, BASE_SPEED + this.broken * 3);
+  },
+  launch() {
+    if (this.mode !== 'idle') return;
+    const ang = (-Math.PI / 2) + (Math.random() * .6 - .3);
+    this.ball.vx = Math.cos(ang) * this.ball.speed;
+    this.ball.vy = Math.sin(ang) * this.ball.speed;
+    this.mode = 'playing';
+    this.hideOverlay();
+  },
+  togglePause() {
+    if (this.mode === 'playing') { this.mode = 'paused'; this.showOverlay('paused'); }
+    else if (this.mode === 'paused') { this.mode = 'playing'; this.hideOverlay(); }
+  },
+
+  /* ── 오버레이 ── */
+  showOverlay(type, data = {}) {
+    const set = (id, v) => $(id).textContent = v;
+    const stats = $('ovStats'), sec = $('ovSecondary'), pri = $('ovPrimary');
+    stats.classList.add('hidden'); sec.classList.add('hidden'); $('ovSave').textContent = '';
+    if (type === 'ready') {
+      set('ovEmoji', '🎮'); set('ovTitle', 'READY?'); set('ovDesc', '스페이스 키 또는 ▲ 키를 눌러 공을 발사하세요.'); set('ovPrimary', '시작하기');
+      pri.onclick = () => this.launch();
+    } else if (type === 'paused') {
+      set('ovEmoji', '⏸️'); set('ovTitle', 'PAUSED'); set('ovDesc', 'P 키를 눌러 계속 진행하세요.'); set('ovPrimary', '계속하기');
+      pri.onclick = () => this.togglePause();
+    } else if (type === 'life') {
+      set('ovEmoji', '💔'); set('ovTitle', `LIVES: ${this.lives}`); set('ovDesc', '아직 기회가 있어요! 스페이스 키로 다시 발사하세요.'); set('ovPrimary', '다시 발사');
+      pri.onclick = () => this.launch();
+    } else if (type === 'win' || type === 'lose') {
+      set('ovEmoji', type === 'win' ? '🏆' : '💥');
+      set('ovTitle', type === 'win' ? 'STAGE CLEAR!' : 'GAME OVER');
+      set('ovDesc', type === 'win' ? `모든 벽돌을 깼습니다! 최대 콤보 x${this.maxCombo}` : `최대 콤보 x${this.maxCombo} · 다음엔 더 잘할 수 있어요!`);
+      stats.classList.remove('hidden');
+      set('ovScore', this.score.toLocaleString()); set('ovBonus', '+' + (data.bonus || 0).toLocaleString());
+      set('ovPrimary', '다시 하기'); pri.onclick = () => { this.reset(); this.showOverlay('ready'); };
+      sec.classList.remove('hidden'); sec.textContent = '순위 보기';
+      sec.onclick = () => $('leaderboard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    overlay.classList.remove('hidden-ov');
+  },
+  hideOverlay() { overlay.classList.add('hidden-ov'); },
+
+  updateHUD() {
+    $('hudScore').textContent = this.score.toLocaleString();
+    $('hudLives').textContent = '❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 3 - this.lives));
+    $('hudBricks').textContent = this.bricks.filter(b => b.alive).length;
+    $('hudCombo').textContent = 'x' + Math.max(1, this.combo);
+  },
+
+  /* ── 종료 처리 ── */
+  async endGame(win) {
+    this.mode = 'over';
+    const bonus = win ? this.lives * 150 + 300 : 0;
+    this.score += bonus;
+    this.updateHUD();
+    this.showOverlay(win ? 'win' : 'lose', { bonus });
+    if (win) this.burst(W / 2, H / 2, 80, ['#f472b6', '#a78bfa', '#22d3ee', '#fcd34d', '#34d399']);
+    if (this.saved || !player) return;
+    this.saved = true;
+    const saveEl = $('ovSave');
+    saveEl.textContent = '점수 저장 중...';
+    try {
+      await Store.saveScore({ name: player, score: this.score, win, maxCombo: this.maxCombo });
+      myBest = Math.max(myBest, this.score); $('myBest').textContent = myBest.toLocaleString();
+      saveEl.textContent = Store.mode === 'firebase' ? '✅ Firebase에 점수가 저장되었습니다.' : '✅ 점수가 저장되었습니다. (로컬 모드)';
+    } catch (e) {
+      console.error(e); saveEl.textContent = '⚠️ 점수 저장에 실패했습니다. DB 규칙을 확인하세요.';
+    }
+  },
+
+  /* ── 파티클 ── */
+  burst(x, y, n, colors) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 220;
+      this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .5 + Math.random() * .5, max: 1, r: 1.5 + Math.random() * 3, c: colors[Math.floor(Math.random() * colors.length)] });
+    }
+  },
+
+  /* ── 업데이트 ── */
+  update(dt) {
+    const p = this.paddle, b = this.ball;
+    // 패들 이동
+    if (this.mode === 'playing' || this.mode === 'idle') {
+      if (this.keys.left) p.x -= PADDLE_SPEED * dt;
+      if (this.keys.right) p.x += PADDLE_SPEED * dt;
+      p.x = Math.max(8, Math.min(W - p.w - 8, p.x));
+    }
+    if (this.mode === 'idle') { b.x = p.x + p.w / 2; b.y = p.y - b.r - 1; }
+    // 파티클
+    for (const q of this.particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 300 * dt; q.life -= dt; }
+    this.particles = this.particles.filter(q => q.life > 0);
+    this.shake = Math.max(0, this.shake - dt * 30);
+    this.flash = Math.max(0, this.flash - dt * 3);
+    if (this.mode !== 'playing') return;
+
+    // 공 이동 (서브스텝으로 터널링 방지)
+    const steps = Math.ceil(Math.hypot(b.vx, b.vy) * dt / 6);
+    const sdt = dt / steps;
+    for (let s = 0; s < steps; s++) {
+      b.x += b.vx * sdt; b.y += b.vy * sdt;
+      // 벽
+      if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx); }
+      if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
+      if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); }
+      // 패들
+      if (b.vy > 0 && b.y + b.r >= p.y && b.y + b.r <= p.y + p.h + 10 && b.x >= p.x - b.r && b.x <= p.x + p.w + b.r) {
+        const hit = ((b.x - (p.x + p.w / 2)) / (p.w / 2));
+        const ang = hit * (Math.PI / 3);   // 최대 60도
+        b.vx = Math.sin(ang) * b.speed; b.vy = -Math.cos(ang) * b.speed;
+        b.y = p.y - b.r;
+        this.combo = 0; this.updateHUD();
+      }
+      // 벽돌
+      for (const br of this.bricks) {
+        if (!br.alive) continue;
+        const cx = Math.max(br.x, Math.min(b.x, br.x + br.w));
+        const cy = Math.max(br.y, Math.min(b.y, br.y + br.h));
+        const dx = b.x - cx, dy = b.y - cy;
+        if (dx * dx + dy * dy <= b.r * b.r) {
+          // 충돌 방향 판정
+          const overlapX = b.r - Math.abs(dx), overlapY = b.r - Math.abs(dy);
+          if (Math.abs(dx) > Math.abs(dy) && dx !== 0) { b.vx = dx > 0 ? Math.abs(b.vx) : -Math.abs(b.vx); b.x += dx > 0 ? overlapX : -overlapX; }
+          else { b.vy = dy > 0 ? Math.abs(b.vy) : -Math.abs(b.vy); b.y += dy > 0 ? overlapY : -overlapY; }
+          br.hp--;
+          if (br.hp <= 0) {
+            br.alive = false; this.broken++;
+            this.combo++; this.maxCombo = Math.max(this.maxCombo, this.combo);
+            this.score += br.points * Math.max(1, this.combo);
+            this.burst(br.x + br.w / 2, br.y + br.h / 2, 14, ROW_COLORS[br.row]);
+            b.speed = Math.min(MAX_SPEED, BASE_SPEED + this.broken * 3);
+            const m = Math.hypot(b.vx, b.vy); b.vx = b.vx / m * b.speed; b.vy = b.vy / m * b.speed;
+          } else {
+            this.score += 5; this.burst(b.x, b.y, 5, ['#ffffff']);
+          }
+          this.shake = 4; this.updateHUD();
+          if (!this.bricks.some(x => x.alive)) { this.endGame(true); return; }
+          break;
+        }
+      }
+      // 낙하
+      if (b.y - b.r > H) {
+        this.lives--; this.combo = 0; this.flash = 1; this.shake = 8; this.updateHUD();
+        if (this.lives <= 0) { this.resetBall(); this.endGame(false); return; }
+        this.resetBall(); this.mode = 'idle'; this.showOverlay('life'); return;
+      }
+    }
+    // 수직 속도가 너무 작아지는 것 방지
+    if (Math.abs(b.vy) < b.speed * .2) { const sign = b.vy < 0 ? -1 : 1; b.vy = sign * b.speed * .2; const m = Math.hypot(b.vx, b.vy); b.vx = b.vx / m * b.speed; b.vy = b.vy / m * b.speed; }
+    b.trail.push({ x: b.x, y: b.y }); if (b.trail.length > 10) b.trail.shift();
+  },
+
+  /* ── 렌더 ── */
+  draw() {
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    if (this.shake > 0) ctx.translate((Math.random() - .5) * this.shake, (Math.random() - .5) * this.shake);
+    // 별
+    for (const s of this.stars) { s.a += .01; ctx.globalAlpha = .3 + Math.abs(Math.sin(s.a)) * .5; ctx.fillStyle = '#c7d2fe'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // 상단 라인
+    const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, 'rgba(244,114,182,0)'); g.addColorStop(.5, 'rgba(167,139,250,.8)'); g.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, 2);
+    // 벽돌
+    for (const br of this.bricks) {
+      if (!br.alive) continue;
+      const [c1, c2] = ROW_COLORS[br.row];
+      const bg = ctx.createLinearGradient(br.x, br.y, br.x, br.y + br.h); bg.addColorStop(0, c1); bg.addColorStop(1, c2);
+      ctx.shadowColor = c1; ctx.shadowBlur = 12;
+      ctx.fillStyle = bg; roundRect(br.x, br.y, br.w, br.h, 6); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,.28)'; roundRect(br.x + 3, br.y + 3, br.w - 6, 5, 3); ctx.fill();
+      if (br.hp > 1) { ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; roundRect(br.x + 1, br.y + 1, br.w - 2, br.h - 2, 5); ctx.stroke(); }
+    }
+    // 공 트레일
+    const b = this.ball;
+    b.trail.forEach((t, i) => { ctx.globalAlpha = (i / b.trail.length) * .35; ctx.fillStyle = '#a5f3fc'; ctx.beginPath(); ctx.arc(t.x, t.y, b.r * (i / b.trail.length), 0, 7); ctx.fill(); });
+    ctx.globalAlpha = 1;
+    // 공
+    ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 20;
+    const bgd = ctx.createRadialGradient(b.x - 3, b.y - 3, 1, b.x, b.y, b.r); bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(1, '#22d3ee');
+    ctx.fillStyle = bgd; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    // 패들
+    const p = this.paddle;
+    const pg = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0); pg.addColorStop(0, '#f472b6'); pg.addColorStop(.5, '#a78bfa'); pg.addColorStop(1, '#22d3ee');
+    ctx.shadowColor = '#a78bfa'; ctx.shadowBlur = 18;
+    ctx.fillStyle = pg; roundRect(p.x, p.y, p.w, p.h, 8); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; roundRect(p.x + 6, p.y + 3, p.w - 12, 4, 2); ctx.fill();
+    // 파티클
+    for (const q of this.particles) { ctx.globalAlpha = Math.max(0, q.life / q.max); ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // 피격 플래시
+    if (this.flash > 0) { ctx.fillStyle = `rgba(244,63,94,${this.flash * .25})`; ctx.fillRect(-10, -10, W + 20, H + 20); }
+    ctx.restore();
+  },
+  loop(t) {
+    const dt = Math.min(.033, (t - this.last) / 1000); this.last = t;
+    this.update(dt); this.draw();
+    this.raf = requestAnimationFrame(tt => this.loop(tt));
+  }
+};
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+
+/* ───────── 입력 ───────── */
+window.addEventListener('keydown', e => {
+  if (!player) return;
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key;
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(k)) e.preventDefault();
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') Game.keys.left = true;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') Game.keys.right = true;
+  if (k === ' ' || k === 'ArrowUp') { if (Game.mode === 'idle') Game.launch(); else if (Game.mode === 'over') { Game.reset(); Game.showOverlay('ready'); } }
+  if (k === 'p' || k === 'P' || k === 'Escape') Game.togglePause();
+  if (k === 'r' || k === 'R') { Game.reset(); Game.showOverlay('ready'); }
+});
+window.addEventListener('keyup', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') Game.keys.left = false;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') Game.keys.right = false;
+});
+canvas.addEventListener('mousemove', e => {
+  if (Game.mode !== 'playing' && Game.mode !== 'idle') return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (W / rect.width);
+  Game.paddle.x = Math.max(8, Math.min(W - Game.paddle.w - 8, x - Game.paddle.w / 2));
+});
+canvas.addEventListener('click', () => { if (Game.mode === 'idle') Game.launch(); });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.touches[0].clientX - rect.left) * (W / rect.width);
+  Game.paddle.x = Math.max(8, Math.min(W - Game.paddle.w - 8, x - Game.paddle.w / 2));
+}, { passive: false });
+canvas.addEventListener('touchstart', () => { if (Game.mode === 'idle') Game.launch(); }, { passive: true });
+
+/* ───────── 초기화 ───────── */
+(async () => {
+  await Store.init();
+  Store.subscribeTop10(renderLeaderboard);
+})();
+</script>
 </body>
 </html>
